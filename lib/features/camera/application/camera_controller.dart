@@ -7,6 +7,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../domain/camera_state.dart';
 import '../domain/frame_preset.dart';
+import '../domain/photo_capture.dart';
+import '../services/photo_capture_service.dart';
 
 final cameraControllerProvider =
     StateNotifierProvider<CameraController, CameraUiState>((ref) {
@@ -14,7 +16,11 @@ final cameraControllerProvider =
 });
 
 class CameraController extends StateNotifier<CameraUiState> {
-  CameraController() : super(const CameraUiState());
+  CameraController({PhotoCaptureService? photoCaptureService})
+      : _photoCaptureService = photoCaptureService ?? PhotoCaptureService(),
+        super(const CameraUiState());
+
+  final PhotoCaptureService _photoCaptureService;
 
   camera_plugin.CameraController? _nativeController;
   List<camera_plugin.CameraDescription> _cameras = const [];
@@ -104,6 +110,26 @@ class CameraController extends StateNotifier<CameraUiState> {
 
   void toggleFlash() {
     state = state.copyWith(isFlashOn: !state.isFlashOn);
+  }
+
+  Future<PhotoCapture?> capturePhoto() async {
+    final controller = _nativeController;
+    if (controller == null || !controller.value.isInitialized || state.status != CameraStatus.ready) {
+      return null;
+    }
+
+    state = state.copyWith(status: CameraStatus.capturing);
+    try {
+      final capture = await _photoCaptureService.capture(
+        cameraController: controller,
+        frame: state.selectedFrame,
+      );
+      if (mounted) state = state.copyWith(status: CameraStatus.ready);
+      return capture;
+    } catch (_) {
+      _setError('Unable to capture the photo.');
+      return null;
+    }
   }
 
   void setStatus(CameraStatus status) {
