@@ -7,6 +7,7 @@ import '../application/camera_controller.dart';
 import '../domain/camera_state.dart';
 import '../domain/frame_preset.dart';
 import 'composition_frame_overlay.dart';
+import '../../media/presentation/media_library_screen.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key});
@@ -64,7 +65,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ),
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MediaLibraryScreen(),
+                      ),
+                    ),
                     icon: const Icon(Icons.photo_library_outlined),
                     color: AppTheme.textPrimary,
                   ),
