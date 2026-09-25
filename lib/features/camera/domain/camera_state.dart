@@ -22,6 +22,7 @@ enum CameraLens {
 class CameraUiState {
   const CameraUiState({
     this.status = CameraStatus.initializing,
+    this.errorMessage,
     this.mode = CameraMode.photo,
     this.lens = CameraLens.back,
     this.isFlashOn = false,
@@ -35,6 +36,7 @@ class CameraUiState {
   });
 
   final CameraStatus status;
+  final String? errorMessage;
   final CameraMode mode;
   final CameraLens lens;
   final bool isFlashOn;
@@ -42,6 +44,8 @@ class CameraUiState {
 
   CameraUiState copyWith({
     CameraStatus? status,
+    String? errorMessage,
+    bool clearErrorMessage = false,
     CameraMode? mode,
     CameraLens? lens,
     bool? isFlashOn,
@@ -49,6 +53,7 @@ class CameraUiState {
   }) {
     return CameraUiState(
       status: status ?? this.status,
+      errorMessage: clearErrorMessage ? null : errorMessage ?? this.errorMessage,
       mode: mode ?? this.mode,
       lens: lens ?? this.lens,
       isFlashOn: isFlashOn ?? this.isFlashOn,

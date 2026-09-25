@@ -8,6 +8,10 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Cinematic Camera App</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required to show the live preview and capture media.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is required to record video with audio.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

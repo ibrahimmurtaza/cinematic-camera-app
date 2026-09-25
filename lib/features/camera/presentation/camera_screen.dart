@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart' as camera_plugin;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,12 +7,39 @@ import '../application/camera_controller.dart';
 import '../domain/camera_state.dart';
 import '../domain/frame_preset.dart';
 
-class CameraScreen extends ConsumerWidget {
+class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends ConsumerState<CameraScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    Future<void>.microtask(
+      () => ref.read(cameraControllerProvider.notifier).initialize(),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    ref.read(cameraControllerProvider.notifier).handleLifecycleChange(state);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cameraState = ref.watch(cameraControllerProvider);
+    final nativeController = ref.read(cameraControllerProvider.notifier).nativeController;
     final selectedFrame = cameraState.selectedFrame;
 
     return Scaffold(
@@ -58,6 +86,12 @@ class CameraScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: Colors.black,
                             borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: nativeController != null && nativeController.value.isInitialized
+                                ? camera_plugin.CameraPreview(nativeController)
+                                : _PreviewStatus(cameraState: cameraState),
                           ),
                         ),
                         AnimatedContainer(
@@ -146,7 +180,9 @@ class CameraScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   FloatingActionButton.small(
-                    onPressed: () => ref.read(cameraControllerProvider.notifier).toggleLens(),
+                    onPressed: cameraState.status == CameraStatus.initializing
+                        ? null
+                        : () => ref.read(cameraControllerProvider.notifier).toggleLens(),
                     backgroundColor: AppTheme.panelBackground,
                     child: const Icon(Icons.cameraswitch_outlined),
                   ),
@@ -168,6 +204,38 @@ class CameraScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewStatus extends StatelessWidget {
+  const _PreviewStatus({required this.cameraState});
+
+  final CameraUiState cameraState;
+
+  @override
+  Widget build(BuildContext context) {
+    final isError = cameraState.status == CameraStatus.error;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isError ? Icons.no_photography_outlined : Icons.camera_outlined,
+              color: AppTheme.textSecondary,
+              size: 36,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              cameraState.errorMessage ?? 'Preparing camera preview...',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppTheme.textSecondary),
+            ),
+          ],
         ),
       ),
     );
