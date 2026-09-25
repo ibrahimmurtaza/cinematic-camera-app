@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../application/camera_controller.dart';
 import '../domain/camera_state.dart';
 import '../domain/frame_preset.dart';
+import 'composition_frame_overlay.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key});
@@ -74,8 +75,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final outerWidth = constraints.maxWidth;
-                    final previewWidth = outerWidth * 0.92;
-                    final previewHeight = previewWidth / selectedFrame.aspectRatio;
 
                     return Stack(
                       alignment: Alignment.center,
@@ -94,27 +93,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                 : _PreviewStatus(cameraState: cameraState),
                           ),
                         ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          width: previewWidth,
-                          height: previewHeight,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border.all(
-                              color: AppTheme.accentColor.withValues(alpha: 0.85),
-                              width: 2.5,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const DecoratedBox(
-                            decoration: BoxDecoration(
-                              border: Border(
-                                top: BorderSide(color: AppTheme.accentColor),
-                                left: BorderSide(color: AppTheme.accentColor),
-                                right: BorderSide(color: AppTheme.accentColor),
-                                bottom: BorderSide(color: AppTheme.accentColor),
-                              ),
-                            ),
+                        CompositionFrameOverlay(
+                          preset: selectedFrame,
+                          availableSize: Size(
+                            outerWidth,
+                            constraints.maxHeight,
                           ),
                         ),
                         Positioned(
