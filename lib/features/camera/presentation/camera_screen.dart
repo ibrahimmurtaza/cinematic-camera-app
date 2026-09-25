@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart' as camera_plugin;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../application/camera_controller.dart';
@@ -95,7 +96,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                             borderRadius: BorderRadius.circular(24),
                             child: nativeController != null && nativeController.value.isInitialized
                                 ? camera_plugin.CameraPreview(nativeController)
-                                : _PreviewStatus(cameraState: cameraState),
+                                : _PreviewStatus(
+                                    cameraState: cameraState,
+                                    onRetry: () => ref
+                                        .read(cameraControllerProvider.notifier)
+                                        .retryInitialization(),
+                                    onOpenSettings: openAppSettings,
+                                  ),
                           ),
                         ),
                         CompositionFrameOverlay(
@@ -157,7 +164,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     return ChoiceChip(
                       label: Text(preset.name),
                       selected: isSelected,
-                      onSelected: (_) => ref.read(cameraControllerProvider.notifier).selectFrame(preset),
+                        onSelected: cameraState.status == CameraStatus.ready
+                          ? (_) => ref.read(cameraControllerProvider.notifier).selectFrame(preset)
+                          : null,
                       avatar: null,
                     );
                   },
@@ -171,6 +180,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     onPressed: cameraState.status == CameraStatus.initializing
                         ? null
                         : () => ref.read(cameraControllerProvider.notifier).toggleLens(),
+                    tooltip: 'Switch camera',
                     backgroundColor: AppTheme.panelBackground,
                     child: const Icon(Icons.cameraswitch_outlined),
                   ),
@@ -184,6 +194,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         ? () => ref.read(cameraControllerProvider.notifier).toggleRecording()
                         : null,
                     backgroundColor: AppTheme.accentColor,
+                    tooltip: cameraState.mode == CameraMode.photo
+                      ? 'Capture photo'
+                      : cameraState.status == CameraStatus.recording
+                        ? 'Stop recording'
+                        : 'Start recording',
                     child: Icon(
                       cameraState.mode == CameraMode.photo
                         ? Icons.photo_camera
@@ -195,6 +210,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   FloatingActionButton.small(
                     onPressed: () => ref.read(cameraControllerProvider.notifier).toggleFlash(),
                     backgroundColor: AppTheme.panelBackground,
+                    tooltip: cameraState.isFlashOn ? 'Turn flash off' : 'Turn flash on',
                     child: Icon(
                       cameraState.isFlashOn ? Icons.flash_on : Icons.flash_off,
                     ),
@@ -210,9 +226,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 }
 
 class _PreviewStatus extends StatelessWidget {
-  const _PreviewStatus({required this.cameraState});
+  const _PreviewStatus({
+    required this.cameraState,
+    required this.onRetry,
+    required this.onOpenSettings,
+  });
 
   final CameraUiState cameraState;
+  final VoidCallback onRetry;
+  final Future<bool> Function() onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +256,24 @@ class _PreviewStatus extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppTheme.textSecondary),
             ),
+            if (isError) ...[
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                  TextButton(
+                    onPressed: onOpenSettings,
+                    child: const Text('Settings'),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

@@ -87,6 +87,17 @@ class CameraController extends StateNotifier<CameraUiState> {
 
   Future<void> handleLifecycleChange(AppLifecycleState appState) async {
     if (appState == AppLifecycleState.inactive || appState == AppLifecycleState.paused) {
+      if (state.status == CameraStatus.recording && _nativeController != null) {
+        state = state.copyWith(status: CameraStatus.processing);
+        try {
+          await _videoCaptureService.stop(
+            cameraController: _nativeController!,
+            frame: state.selectedFrame,
+          );
+        } catch (_) {
+          _setError('Recording was interrupted before it could be saved.');
+        }
+      }
       await _nativeController?.dispose();
       _nativeController = null;
       if (mounted) state = state.copyWith(status: CameraStatus.initializing);
@@ -98,6 +109,8 @@ class CameraController extends StateNotifier<CameraUiState> {
   void setReady() {
     state = state.copyWith(status: CameraStatus.ready);
   }
+
+  Future<void> retryInitialization() => initialize();
 
   void selectFrame(FramePreset preset) {
     state = state.copyWith(
@@ -208,6 +221,7 @@ class CameraController extends StateNotifier<CameraUiState> {
   }
 
   void _setError(String message) {
+    unawaited(_nativeController?.dispose());
     _nativeController = null;
     if (mounted) {
       state = state.copyWith(
