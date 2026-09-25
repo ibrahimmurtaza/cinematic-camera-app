@@ -8,7 +8,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../domain/camera_state.dart';
 import '../domain/frame_preset.dart';
 import '../domain/photo_capture.dart';
+import '../domain/video_capture.dart';
 import '../services/photo_capture_service.dart';
+import '../services/video_capture_service.dart';
 
 final cameraControllerProvider =
     StateNotifierProvider<CameraController, CameraUiState>((ref) {
@@ -16,11 +18,16 @@ final cameraControllerProvider =
 });
 
 class CameraController extends StateNotifier<CameraUiState> {
-  CameraController({PhotoCaptureService? photoCaptureService})
+  CameraController({
+    PhotoCaptureService? photoCaptureService,
+    VideoCaptureService? videoCaptureService,
+  })
       : _photoCaptureService = photoCaptureService ?? PhotoCaptureService(),
+        _videoCaptureService = videoCaptureService ?? VideoCaptureService(),
         super(const CameraUiState());
 
   final PhotoCaptureService _photoCaptureService;
+  final VideoCaptureService _videoCaptureService;
 
   camera_plugin.CameraController? _nativeController;
   List<camera_plugin.CameraDescription> _cameras = const [];
@@ -130,6 +137,35 @@ class CameraController extends StateNotifier<CameraUiState> {
       _setError('Unable to capture the photo.');
       return null;
     }
+  }
+
+  Future<VideoCapture?> toggleRecording() async {
+    final controller = _nativeController;
+    if (controller == null || !controller.value.isInitialized) return null;
+
+    if (state.status == CameraStatus.recording) {
+      state = state.copyWith(status: CameraStatus.processing);
+      try {
+        final capture = await _videoCaptureService.stop(
+          cameraController: controller,
+          frame: state.selectedFrame,
+        );
+        if (mounted) state = state.copyWith(status: CameraStatus.ready);
+        return capture;
+      } catch (_) {
+        _setError('Unable to save the video.');
+        return null;
+      }
+    }
+
+    if (state.status != CameraStatus.ready || state.mode != CameraMode.video) return null;
+    try {
+      await _videoCaptureService.start(controller);
+      if (mounted) state = state.copyWith(status: CameraStatus.recording);
+    } catch (_) {
+      _setError('Unable to start video recording.');
+    }
+    return null;
   }
 
   void setStatus(CameraStatus status) {

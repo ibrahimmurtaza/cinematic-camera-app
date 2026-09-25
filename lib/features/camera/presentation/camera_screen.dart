@@ -170,12 +170,21 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     child: const Icon(Icons.cameraswitch_outlined),
                   ),
                   FloatingActionButton(
-                    onPressed: cameraState.status == CameraStatus.ready && cameraState.mode == CameraMode.photo
-                        ? () => ref.read(cameraControllerProvider.notifier).capturePhoto()
-                        : () => ref.read(cameraControllerProvider.notifier).toggleMode(),
+                    onPressed: cameraState.status == CameraStatus.recording ||
+                        (cameraState.status == CameraStatus.ready && cameraState.mode == CameraMode.photo)
+                      ? () => cameraState.mode == CameraMode.photo
+                        ? ref.read(cameraControllerProvider.notifier).capturePhoto()
+                        : ref.read(cameraControllerProvider.notifier).toggleRecording()
+                      : cameraState.status == CameraStatus.ready
+                        ? () => ref.read(cameraControllerProvider.notifier).toggleRecording()
+                        : null,
                     backgroundColor: AppTheme.accentColor,
                     child: Icon(
-                      cameraState.mode == CameraMode.photo ? Icons.photo_camera : Icons.videocam,
+                      cameraState.mode == CameraMode.photo
+                        ? Icons.photo_camera
+                        : cameraState.status == CameraStatus.recording
+                          ? Icons.stop
+                          : Icons.videocam,
                     ),
                   ),
                   FloatingActionButton.small(
