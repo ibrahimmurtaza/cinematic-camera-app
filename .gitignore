@@ -33,6 +33,15 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Flutter platform-generated files
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/local.properties
+**/.gradle/
+**/.cxx/
+**/.symlinks/
+**/ephemeral/
+
 # Symbolication related
 app.*.symbols
 
