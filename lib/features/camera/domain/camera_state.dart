@@ -26,6 +26,7 @@ class CameraUiState {
     this.mode = CameraMode.photo,
     this.lens = CameraLens.back,
     this.isFlashOn = false,
+    this.physicalOrientation = CameraOrientation.portrait,
     this.selectedFrame = const FramePreset(
       id: 'wide-169',
       name: '16:9',
@@ -40,6 +41,7 @@ class CameraUiState {
   final CameraMode mode;
   final CameraLens lens;
   final bool isFlashOn;
+  final CameraOrientation physicalOrientation;
   final FramePreset selectedFrame;
 
   CameraUiState copyWith({
@@ -49,6 +51,7 @@ class CameraUiState {
     CameraMode? mode,
     CameraLens? lens,
     bool? isFlashOn,
+    CameraOrientation? physicalOrientation,
     FramePreset? selectedFrame,
   }) {
     return CameraUiState(
@@ -57,6 +60,7 @@ class CameraUiState {
       mode: mode ?? this.mode,
       lens: lens ?? this.lens,
       isFlashOn: isFlashOn ?? this.isFlashOn,
+      physicalOrientation: physicalOrientation ?? this.physicalOrientation,
       selectedFrame: selectedFrame ?? this.selectedFrame,
     );
   }

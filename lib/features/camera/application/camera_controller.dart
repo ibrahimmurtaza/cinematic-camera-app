@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart' as camera_plugin;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../domain/camera_state.dart';
@@ -98,6 +99,7 @@ class CameraController extends StateNotifier<CameraUiState> {
           _setError('Recording was interrupted before it could be saved.');
         }
       }
+      _nativeController?.removeListener(_handleNativeControllerChanged);
       await _nativeController?.dispose();
       _nativeController = null;
       if (mounted) state = state.copyWith(status: CameraStatus.initializing);
@@ -187,6 +189,7 @@ class CameraController extends StateNotifier<CameraUiState> {
 
   @override
   void dispose() {
+    _nativeController?.removeListener(_handleNativeControllerChanged);
     unawaited(_nativeController?.dispose());
     super.dispose();
   }
@@ -194,6 +197,7 @@ class CameraController extends StateNotifier<CameraUiState> {
   Future<void> _initializeNativeController(
     camera_plugin.CameraDescription description,
   ) async {
+    _nativeController?.removeListener(_handleNativeControllerChanged);
     await _nativeController?.dispose();
     final controller = camera_plugin.CameraController(
       description,
@@ -201,6 +205,7 @@ class CameraController extends StateNotifier<CameraUiState> {
       enableAudio: false,
     );
     _nativeController = controller;
+    controller.addListener(_handleNativeControllerChanged);
     await controller.initialize();
     if (mounted) {
       state = state.copyWith(
@@ -221,6 +226,7 @@ class CameraController extends StateNotifier<CameraUiState> {
   }
 
   void _setError(String message) {
+    _nativeController?.removeListener(_handleNativeControllerChanged);
     unawaited(_nativeController?.dispose());
     _nativeController = null;
     if (mounted) {
@@ -238,5 +244,20 @@ class CameraController extends StateNotifier<CameraUiState> {
       'CameraAccessRestricted' => 'Camera access is restricted on this device.',
       _ => error.description ?? 'Unable to access the camera.',
     };
+  }
+
+  void _handleNativeControllerChanged() {
+    final nativeController = _nativeController;
+    if (!mounted || nativeController == null) return;
+
+    final orientation = switch (nativeController.value.deviceOrientation) {
+      DeviceOrientation.portraitUp || DeviceOrientation.portraitDown =>
+        CameraOrientation.portrait,
+      DeviceOrientation.landscapeLeft || DeviceOrientation.landscapeRight =>
+        CameraOrientation.landscape,
+    };
+    if (state.physicalOrientation != orientation) {
+      state = state.copyWith(physicalOrientation: orientation);
+    }
   }
 }
